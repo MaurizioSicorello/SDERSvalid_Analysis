@@ -2,4 +2,6 @@ data/raw/
 data/SDERSvalid_DailyLife_data_preprocessed.csv
 
 manuscripts/
+!manuscripts/SDERSvalid_crossSec/
+
 presentations/

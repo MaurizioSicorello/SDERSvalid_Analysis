@@ -20,5 +20,5 @@ To reproduce the analyses (or get a general better understanding of the reposito
 ## Notes on specific papers
 
 ### A German version of the State Difficulties in Emotion Regulation Scale (S-DERS): Translation, Validation and Extended Factor Models
-This project focuses on the cross-sectional properties of the S-DERS following a mood induction. Relevant analysis scripts are scripts 1-3. Relevant data is "SDERSvalid_crossSec_data_preprocessed.csv". The original factor loadings from Lavender et al. (2017) can be found in "LavenderEFAloadings.csv". The respective manuscripts folder is called "SDERSvalid_crossSec"
+This paper focuses on the cross-sectional properties of the S-DERS following a mood induction. Relevant analysis scripts are scripts 1-3. Relevant data is "SDERSvalid_crossSec_data_preprocessed.csv". The original factor loadings from Lavender et al. (2017) can be found in "LavenderEFAloadings.csv". The respective manuscripts folder is called "SDERSvalid_crossSec"
 

@@ -17,6 +17,9 @@ To reproduce the analyses (or get a general better understanding of the reposito
 6. data: The scripts depend on data, which can be found in the "data" folder. This data is minimally preprocessed (e.g., invalid cases due to technical difficulties are removed and scale scores are calculated). For details on this minimal preprocessing see the respective scripts in the "scripts" folder
 7. the manuscripts folder contains separate folders for the resulting publications. they are relevant for reproducibity, as many tables and figures are automatically moved to these subdirectories from the main scripts
 
+## Reuse notes
+This repository is intended to enable other researchers to reuse the data and code for further projects by other research teams. In case of such reuse, please cite the publications below or consider contacting us for collaborations. 
+
 ## Notes on specific papers
 
 ### A German version of the State Difficulties in Emotion Regulation Scale (S-DERS): Translation, Validation and Extended Factor Models

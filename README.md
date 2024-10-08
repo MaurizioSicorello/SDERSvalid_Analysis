@@ -1,5 +1,4 @@
-# SDERSvalid_Analysis
- Psychometric validation and daily life assessment of State Difficulties in Emotion Regulation (S-DERS)
+# Psychometric validation and daily life assessment of State Difficulties in Emotion Regulation (S-DERS)
 
 ## Project Description
 This repository contains data and analysis code for an empirical research project on State Difficulties in Emotion Regulation (S-DERS). This project comprises: 

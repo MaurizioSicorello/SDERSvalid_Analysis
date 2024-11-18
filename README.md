@@ -7,6 +7,9 @@ This repository contains data and analysis code for an empirical research projec
 Details on the project can be found in the respective preprints and publications (see below). 
 The core project contributers are Maurizio Sicorello, David Kolar, Moritz Elsässer, Luise Prüßner, and Wiebke Heyse
 
+## Reuse notes
+This repository is intended to enable other researchers to reuse the data and code for further projects by other research teams. In case of such reuse, please cite the publications below or consider contacting us for collaborations. 
+
 ## Reproducibility Notes
 To reproduce the analyses (or get a general better understanding of the repository structure), read the following instructions: 
 1. R-project: All analyses were conducted using R. To reproduce analyses, open the "SDERSvalid_Analysis" file on the top level to initiate an R environment with the correct configurations.
@@ -16,9 +19,6 @@ To reproduce the analyses (or get a general better understanding of the reposito
 5. local functions: The project uses some custom functions, which are defined in and loaded from the folder "functions"
 6. data: The scripts depend on data, which can be found in the "data" folder. This data is minimally preprocessed (e.g., invalid cases due to technical difficulties are removed and scale scores are calculated). For details on this minimal preprocessing see the respective scripts in the "scripts" folder
 7. the manuscripts folder contains separate folders for the resulting publications. they are relevant for reproducibity, as many tables and figures are automatically moved to these subdirectories from the main scripts
-
-## Reuse notes
-This repository is intended to enable other researchers to reuse the data and code for further projects by other research teams. In case of such reuse, please cite the publications below or consider contacting us for collaborations. 
 
 ## Notes on specific papers
 

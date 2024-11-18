@@ -2,8 +2,8 @@
 
 ## Project Description
 This repository contains data and analysis code for an empirical research project on State Difficulties in Emotion Regulation (S-DERS). This project comprises: 
--the validation of a German version of the S-DERS questionnaire by Lavender et al. (2017) following a mood induction
--an application of the questionnaire to daily life using ecological momentary assessment
+(1) the validation of a German version of the S-DERS questionnaire by Lavender et al. (2017) following a mood induction
+(2) an application of the questionnaire to daily life using ecological momentary assessment
 Details on the project can be found in the respective preprints and publications (see below). 
 The core project contributers are Maurizio Sicorello, David Kolar, Moritz Elsässer, Luise Prüßner, and Wiebke Heyse
 

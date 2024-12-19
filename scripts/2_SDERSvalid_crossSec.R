@@ -336,6 +336,40 @@ stanRes[stanRes$p <= .01, ] # we see a residual structure that reflect the blend
 
 
 
+# Check latent correlations with DASS, Neuroticism and mental disorders
+SDERSpsypathNames <- c(SDERSnames, "DASS_Total_mean", "NEO_N_mean", "MENT.HEALTH")
+dfSDERS_psypath <- as.data.frame(scale(df[, SDERSpsypathNames]))
+
+esem_modelPromax_psypath <- paste(esem_modelPromax, 
+"PA1 ~~ DASS_Total_mean + NEO_N_mean + MENT.HEALTH
+PA2 ~~ DASS_Total_mean + NEO_N_mean + MENT.HEALTH
+PA3 ~~ DASS_Total_mean + NEO_N_mean + MENT.HEALTH
+PA4 ~~ DASS_Total_mean + NEO_N_mean + MENT.HEALTH")
+
+esem_fitPromax_psypath <- cfa(model=esem_modelPromax_psypath, data=dfSDERS_psypath, std.lv=TRUE, estimator = "ML")
+
+# inspect model (careful: P1 = Nonaccept, P2 = Awareness, P3 = Modulate, P4 = Clarity)
+summary(esem_fitPromax_psypath, fit.measures = TRUE, standardized = TRUE)
+
+psypath_estimates <- as.data.frame(lavInspect(esem_fitPromax_psypath, "est")$psi[5:7, 1:4])
+names(psypath_estimates) <- c("Non-Acceptance", "Awareness", "Modulate", "Clarity")
+#psypath_estimates <- abs(psypath_estimates)
+
+psypath_CIupper <- psypath_estimates + 1.96*lavInspect(esem_fitPromax_psypath, "se")$psi[5:7, 1:4]
+psypath_CIlower <- psypath_estimates - 1.96*lavInspect(esem_fitPromax_psypath, "se")$psi[5:7, 1:4]
+
+plotPsypath <- cbind(melt(psypath_estimates), melt(psypath_CIlower)[,2], melt(psypath_CIupper)[,2], rep(rownames(psypath_estimates), 4))
+names(plotPsypath) <- c("Subscale", "Correlation", "CIlower", "CIupper", "Outcome")
+
+ggplot(data=plotPsypath, aes(x=Subscale, y=Correlation, fill=Outcome)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  xlab(NULL) +
+  scale_fill_discrete(name = NULL, labels = c("DASS", "Mental Disorder", "Neuroticism")) 
+
+ggsave(here("manuscripts", "SDERSvalid_crossSec", "figures", "psypath_latentCorrs.svg"), device="svg", height=3.25, width=6)
+
+
 # # simulate performance of Hu & Bentler cutoffs for EFA model
 # iterations <- 1000
 # EFAsimOUt <- as.data.frame(matrix(nrow=iterations, ncol=4, dimnames=list(NULL, c("srmr", "rmsea", "cfi", "tli"))))
@@ -583,6 +617,8 @@ df$S.DERS_Total_mean_unweighted <- rowSums(df[, c("S.DERS_NonAccept_mean", "S.DE
 
 t.test(data=df, S.DERS_Total_mean_unweighted~MENT.HEALTH)
 t.test(data=df, S.DERS_Total_mean~MENT.HEALTH)
+cohen.d(data=df, S.DERS_Total_mean_unweighted~MENT.HEALTH)
+cohen.d(data=df, S.DERS_Total_mean~MENT.HEALTH)
 
 cor.test(df$S.DERS_Total_mean_unweighted, df$DASS_Total_mean)
 cor.test(df$S.DERS_Total_mean, df$DASS_Total_mean)

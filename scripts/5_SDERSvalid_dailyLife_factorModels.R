@@ -235,10 +235,22 @@ fitMeasures_ESEM4fixed
 
 
 #loadings
-cut <- 0.3
+cut <- 0.4
 #inspect(ESEM4fixed_fit, what = "std")$within$lambda
 loadingswithin = inspect(ESEM4fixed_fit, what = "std")$within$lambda
 loadingsBetween = inspect(ESEM4fixed_fit, what = "std")$PARTICIPANT_ID$lambda
+
+loadingswithin_ordered <- loadingswithin[match(itemOrder_no10, rownames(loadingswithin)), ]
+loadingswithin_ordered <- round(loadingswithin_ordered,2)
+row.names(loadingswithin_ordered) <- paste0("Item ", str_extract(rownames(loadingswithin_ordered), "(?<=S\\.DERS)\\d+(?=_)"))
+
+loadingsBetween_ordered <- loadingsBetween[match(itemOrder_no10, rownames(loadingsBetween)), ]
+loadingsBetween_ordered <- round(loadingsBetween_ordered,2)
+row.names(loadingsBetween_ordered) <- paste0("Item ", str_extract(rownames(loadingsBetween_ordered), "(?<=S\\.DERS)\\d+(?=_)"))
+
+
+ifelse(abs(loadingswithin_ordered) > cut, loadingswithin_ordered, "")
+
 
 ifelse(abs(loadingswithin) > cut, loadingswithin, "")
 #inspect(ESEM4fixed_fit, what = "std")$PARTICIPANT_ID$lambda

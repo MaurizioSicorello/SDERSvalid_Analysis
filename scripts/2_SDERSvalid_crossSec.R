@@ -284,7 +284,6 @@ save_as_docx(
 # datscience::apa_factorLoadings(psych::fa(EFAmodel4, nfactors = 4))
 
 
-
 fitMeasures_EFAmodel4 <- c(EFAmodel4$rms, 
                            EFAmodel4$RMSEA["RMSEA"], 
                            ((EFAmodel4$null.chisq-EFAmodel4$null.dof)-(EFAmodel4$STATISTIC-EFAmodel4$dof))/(EFAmodel4$null.chisq-EFAmodel4$null.dof), # CFI, Scource: https://gist.github.com/tonosan/cb7581f3459ae7c4217a
@@ -682,6 +681,540 @@ for(i in 1:iterations){
 hist(simResults)
 mean(simResults)
 sum(simResults >= EFAmodel4$loadings["S.DERS7_BL",3])/length(simResults)
+
+
+
+# SIM 3: SAmple size simulations
+
+# ESEM model
+# does not work, because it changes between simulation runs which factor is
+# PA1, PA2 and so on. E.g., Non-Acceptance can be either factor 1 or 2.
+# There would be a routine necessary, which determines which factor is which
+# and match this with the population values.
+
+
+assign_factor_labels <- function(param_table){
+  
+  recode_table = param_table
+  
+  param_8 <- param_table[param_table$rhs == "S.DERS8_BL" & param_table$op == "=~", ]
+  name8 <- param_8$lhs[which.max(abs(param_8$est))]
+  recode_table$lhs <- ifelse(recode_table$lhs == name8, "Non-Acceptance", recode_table$lhs)
+  recode_table$rhs <- ifelse(recode_table$rhs == name8, "Non-Acceptance", recode_table$rhs)
+  
+  param_6 <- param_table[param_table$rhs == "S.DERS6_BL.r" & param_table$op == "=~", ]
+  name6 <- param_6$lhs[which.max(abs(param_6$est))]
+  recode_table$lhs <- ifelse(recode_table$lhs == name6, "Awareness", recode_table$lhs)
+  recode_table$rhs <- ifelse(recode_table$rhs == name6, "Awareness", recode_table$rhs)
+  
+  param_13 <- param_table[param_table$rhs == "S.DERS13_BL" & param_table$op == "=~", ]
+  name13 <- param_13$lhs[which.max(abs(param_13$est))]
+  recode_table$lhs <- ifelse(recode_table$lhs == name13, "Modulate", recode_table$lhs)
+  recode_table$rhs <- ifelse(recode_table$rhs == name13, "Modulate", recode_table$rhs)
+  
+  param_14 <- param_table[param_table$rhs == "S.DERS14_BL" & param_table$op == "=~", ]
+  name14 <- param_14$lhs[which.max(abs(param_14$est))]
+  recode_table$lhs <- ifelse(recode_table$lhs == name14, "Clarity", recode_table$lhs)
+  recode_table$rhs <- ifelse(recode_table$rhs == name14, "Clarity", recode_table$rhs)
+  
+  reorder_table <- recode_table[order(recode_table$lhs, recode_table$op, recode_table$rhs), ]
+  
+  return(reorder_table)
+}
+
+
+
+# build data generating model
+esem_efaPromax_Lav <- esem_efa(data=LavMat, 
+                           nfactors =4,
+                           fm = 'pa',
+                           rotate="promax",
+                           residuals = TRUE)
+print(esem_efaPromax_Lav, cutoff=0.3)
+
+
+esem_modelPromax_Lav <- esem_syntax(esem_efaPromax_Lav)
+writeLines(esem_modelPromax_Lav)
+esem_fitPromax_Lav <- cfa(model=esem_modelPromax_Lav, sample.cov=LavMat, sample.nobs=484, std.lv=TRUE, estimator = "ML")
+
+summary(esem_fitPromax_Lav)
+
+population_parameters <- assign_factor_labels(parameterEstimates(esem_fitPromax_Lav))
+simulation_parameters <- parTable(esem_fitPromax_Lav)
+
+# initialize output dfs
+
+iterations = 20
+numPars = nrow(population_parameters)
+
+sim_est <- matrix(nrow=numPars, ncol=iterations)
+sim_se <- matrix(nrow=numPars, ncol=iterations)
+sim_ci <- matrix(nrow=numPars, ncol=iterations)
+
+t1 <- Sys.time()
+
+# for(i in 1:iterations){
+#   
+#   sim_data <- simulateData(simulation_parameters, sample.nobs = 214)
+#   
+#   sim_efa <- esem_efa(data=sim_data, 
+#                                  nfactors =4,
+#                                  fm = 'pa',
+#                                  rotate="promax",
+#                                  residuals = TRUE)
+#   
+#   sim_esem_syntax <- esem_syntax(sim_efa)
+#   
+#   sim_esem <- cfa(model=sim_esem_syntax, data=sim_data, std.lv=TRUE, estimator = "ML")
+#   
+#   sim_parEst <- assign_factor_labels(parameterEstimates(sim_esem))
+#   
+#   sim_est[,i] <- sim_parEst$est
+#   sim_se[,i] <- sim_parEst$se
+#   
+#   sim_ci[,i] <- as.numeric(population_parameters$est >= sim_parEst$ci.lower & population_parameters$est <= sim_parEst$ci.upper)
+#   sim_ci[,i] <- ifelse(sim_parEst$ci.lower == sim_parEst$ci.upper, NA, sim_ci[,i])
+#   
+# }
+
+iterations <- 10000
+numPars <- nrow(population_parameters)
+
+sim_est <- matrix(nrow = numPars, ncol = iterations)
+sim_se  <- matrix(nrow = numPars, ncol = iterations)
+sim_ci  <- matrix(nrow = numPars, ncol = iterations)
+
+problem_flags <- rep(FALSE, iterations)
+
+t1 <- Sys.time()
+
+for(i in 1:iterations){
+  
+  sim_data <- simulateData(simulation_parameters, sample.nobs = 214)
+  
+  sim_efa <- esem_efa(data = sim_data, 
+                      nfactors = 4,
+                      fm = 'pa',
+                      rotate = "promax",
+                      residuals = TRUE)
+  
+  sim_esem_syntax <- esem_syntax(sim_efa)
+  
+  sim_esem <- tryCatch({
+    cfa(model = sim_esem_syntax, data = sim_data, std.lv = TRUE, estimator = "ML")
+  }, error = function(e) NULL)
+  
+  if (is.null(sim_esem) || 
+      !lavInspect(sim_esem, "converged") || 
+      lavInspect(sim_esem, "post.check") == FALSE) {
+    
+    problem_flags[i] <- TRUE
+    next
+  }
+  
+  sim_parEst <- tryCatch({
+    assign_factor_labels(parameterEstimates(sim_esem))
+  }, error = function(e) NULL)
+  
+  if (is.null(sim_parEst) || 
+      any(is.na(sim_parEst$est)) || 
+      any(abs(sim_parEst$est) > 10)) {
+    
+    problem_flags[i] <- TRUE
+    next
+  }
+  
+  sim_est[, i] <- sim_parEst$est
+  sim_se[, i]  <- sim_parEst$se
+  
+  sim_ci[, i] <- as.numeric(population_parameters$est >= sim_parEst$ci.lower &
+                              population_parameters$est <= sim_parEst$ci.upper)
+  
+  sim_ci[, i] <- ifelse(sim_parEst$ci.lower == sim_parEst$ci.upper, NA, sim_ci[, i])
+}
+
+t2 <- Sys.time()
+
+
+sim_est_mean <- rowMeans(sim_est[, !problem_flags], na.rm=TRUE)
+sim_se_mean <- rowMeans(sim_se[, !problem_flags], na.rm=TRUE)
+sim_ci_prop <- rowSums(sim_ci[, !problem_flags], na.rm=TRUE)/rowSums(!is.na(sim_ci[, !problem_flags]))
+
+all_params <- cbind(population_parameters, sim_est_mean, sim_se_mean, sim_ci_prop)
+loading_params <- all_params[all_params$op == "=~", ]
+#loading_params <- all_params
+
+loading_params$loading_abs_bias <- round(loading_params$est - loading_params$sim_est_mean, 4)
+loading_params$loading_rel_bias <- round(loading_params$loading_abs_bias/loading_params$est, 4)
+
+loading_params$se_abs_bias <- round(loading_params$se - loading_params$sim_se_mean, 4)
+loading_params$se_rel_bias <- round(loading_params$se_abs_bias/loading_params$se, 4)
+
+
+bias_ind <- which(abs(loading_params$loading_abs_bias) > 0.05)
+
+titles <- paste0(loading_params$lhs[bias_ind], loading_params$op[bias_ind], loading_params$rhs[bias_ind])  # or your own custom vector
+
+par(mfrow = c(4, 3))
+for (i in 1:10) {hist(sim_est[bias_ind[i], ], main = titles[i])}
+
+
+sum(loading_params$se_rel_bias > 0.05, na.rm=TRUE)
+
+
+
+mean(abs(loading_params$loading_abs_bias))
+
+hist(sim_est[which.max(abs(loading_params$loading_abs_bias)), ])
+
+which(sim_est == max(sim_est[which(abs(loading_params$loading_abs_bias) > 0.05), ]), arr.ind = TRUE)
+
+sum(((population_parameters$est - sim_est_mean) / population_parameters$est > 0.05))
+sum(((population_parameters$se - sim_se_mean) / population_parameters$se > 0.05), na.rm=TRUE)
+sum(sim_ci_prop < .9, na.rm=TRUE)
+
+cbind(population_parameters, sim_ci_prop)[sim_ci_prop < .9, ]
+
+
+
+plot((population_parameters$est - sim_est_mean)/population_parameters$est, population_parameters$est)
+hist((population_parameters$est - sim_est_mean)/population_parameters$est)
+
+
+testbias <- cbind(population_parameters, sim_est_mean)
+testbias$relBias <- round((testbias$est - testbias$sim_est_mean)/testbias$est, 3)
+
+(-0.000227386 - 0.066226270)/-0.000227386 * 100
+
+cbind(population_parameters, sim_est_mean)[which.max(((population_parameters$est - sim_est_mean) / population_parameters$est)), ]
+
+custom_prob <- function(z_crit, p) {
+  1 - pnorm(z_crit - qnorm(1 - p))
+}
+
+custom_prob(1.96, 0.001)
+
+
+# simulate CFA model
+
+CFAmodel_simpel <-   'NonAccept  =~ S.DERS8_BL + S.DERS4_BL + S.DERS1_BL + S.DERS5_BL + S.DERS12_BL + S.DERS20_BL + S.DERS18_BL
+                      Modulate =~ S.DERS13_BL + S.DERS17_BL + S.DERS10_BL + S.DERS3_BL + S.DERS15_BL + S.DERS21_BL + S.DERS9_BL
+                      Awareness =~ S.DERS6_BL.r + S.DERS11_BL.r + S.DERS2_BL.r + S.DERS19_BL.r + S.DERS16_BL.r
+                      Clarity =~ S.DERS14_BL + S.DERS7_BL'
+
+# Fit CFA model to real data
+CFA_fit <- cfa(model = CFAmodel_simpel, sample.cov=LavMat, sample.nobs=484, std.lv = TRUE, estimator = "ML")
+
+# Extract parameters for simulation
+population_parameters <- parameterEstimates(CFA_fit)
+simulation_parameters <- parTable(CFA_fit)
+
+# Initialize output matrices
+iterations <- 1000
+numPars <- nrow(population_parameters)
+
+sim_est <- matrix(nrow=numPars, ncol=iterations)
+sim_se <- matrix(nrow=numPars, ncol=iterations)
+sim_ci <- matrix(nrow=numPars, ncol=iterations)
+
+t1 <- Sys.time()
+
+# Simulation loop
+for(i in 1:iterations){
+  
+  # Simulate data based on CFA model parameters
+  sim_data <- simulateData(simulation_parameters, sample.nobs = 214)
+  
+  # Fit CFA model to simulated data
+  sim_CFA <- cfa(model = CFAmodel_simpel, data = sim_data, std.lv = TRUE, estimator = "ML")
+  
+  # Extract parameter estimates
+  sim_parEst <- parameterEstimates(sim_CFA)
+  
+  sim_est[,i] <- sim_parEst$est
+  sim_se[,i] <- sim_parEst$se
+  
+  sim_ci[,i] <- as.numeric(population_parameters$est >= sim_parEst$ci.lower & population_parameters$est <= sim_parEst$ci.upper)
+}
+
+t2 <- Sys.time()
+
+# Compute summary statistics
+sim_est_mean <- rowMeans(sim_est)
+sim_se_mean <- rowMeans(sim_se)
+sim_ci_prop <- rowSums(sim_ci, na.rm=TRUE) / rowSums(!is.na(sim_ci))
+
+# Compare simulated estimates to population parameters
+sum(((population_parameters$est - sim_est_mean) / population_parameters$est > 0.05))
+sum(((population_parameters$se - sim_se_mean) / population_parameters$se > 0.05), na.rm=TRUE)
+sum(sim_ci_prop < .9, na.rm=TRUE)
+
+
+
+###########################
+# bi-factor model
+
+
+bifactor_model <- '
+  # General factor (weak for Awareness items)
+  G =~ 0.52*S.DERS8_BL + 0.60*S.DERS4_BL + 0.41*S.DERS1_BL + 0.58*S.DERS5_BL + 0.47*S.DERS12_BL + 0.50*S.DERS20_BL + 0.40*S.DERS18_BL +
+       0.44*S.DERS13_BL + 0.53*S.DERS17_BL + 0.59*S.DERS10_BL + 0.49*S.DERS3_BL + 0.57*S.DERS15_BL + 0.48*S.DERS21_BL + 0.42*S.DERS9_BL +
+       0.11*S.DERS6_BL.r + 0.08*S.DERS11_BL.r + 0.12*S.DERS2_BL.r + 0.09*S.DERS19_BL.r + 0.07*S.DERS16_BL.r +
+       0.50*S.DERS14_BL + 0.54*S.DERS7_BL
+
+  # Specific factors (all strong, including Awareness)
+  NonAccept =~ 0.45*S.DERS8_BL + 0.57*S.DERS4_BL + 0.51*S.DERS1_BL + 0.60*S.DERS5_BL + 0.42*S.DERS12_BL + 0.49*S.DERS20_BL + 0.56*S.DERS18_BL
+  Modulate   =~ 0.58*S.DERS13_BL + 0.40*S.DERS17_BL + 0.55*S.DERS10_BL + 0.48*S.DERS3_BL + 0.60*S.DERS15_BL + 0.43*S.DERS21_BL + 0.52*S.DERS9_BL
+  Awareness  =~ 0.53*S.DERS6_BL.r + 0.44*S.DERS11_BL.r + 0.60*S.DERS2_BL.r + 0.50*S.DERS19_BL.r + 0.47*S.DERS16_BL.r
+  Clarity    =~ 0.45*S.DERS14_BL + 0.59*S.DERS7_BL
+
+  # Uncorrelated factors
+  G ~~ 0*NonAccept
+  G ~~ 0*Modulate
+  G ~~ 0*Awareness
+  G ~~ 0*Clarity
+  NonAccept ~~ 0*Modulate
+  NonAccept ~~ 0*Awareness
+  NonAccept ~~ 0*Clarity
+  Modulate ~~ 0*Awareness
+  Modulate ~~ 0*Clarity
+  Awareness ~~ 0*Clarity
+  
+'
+
+
+
+# Extract population parameters
+population_parameters <- parameterEstimates(cfa(bifactor_model, data=simulateData(bifactor_model, sample.nobs=10000), std.lv = TRUE, estimator = "ML"))
+
+# Initialize output
+iterations <- 10
+numPars <- nrow(population_parameters)
+
+sim_est <- matrix(nrow = numPars, ncol = iterations)
+sim_se  <- matrix(nrow = numPars, ncol = iterations)
+sim_ci  <- matrix(nrow = numPars, ncol = iterations)
+problem_flags <- rep(FALSE, iterations)
+
+t1 <- Sys.time()
+
+for (i in 1:iterations) {
+  
+  # Simulate data
+  sim_data <- simulateData(bifactor_model, sample.nobs = 214)
+  
+  # Fit bifactor model to simulated data, with error handling
+  sim_CFA <- tryCatch({
+    cfa(model = CFAmodel_bifactor, data = sim_data, std.lv = TRUE, estimator = "ML")
+  }, error = function(e) NULL)
+  
+  if (is.null(sim_CFA) || 
+      !lavInspect(sim_CFA, "converged") || 
+      lavInspect(sim_CFA, "post.check") == FALSE) {
+    problem_flags[i] <- TRUE
+    next
+  }
+  
+  sim_parEst <- tryCatch({
+    parameterEstimates(sim_CFA)
+  }, error = function(e) NULL)
+  
+  if (is.null(sim_parEst) || 
+      any(is.na(sim_parEst$est)) || 
+      any(abs(sim_parEst$est) > 10)) {
+    problem_flags[i] <- TRUE
+    next
+  }
+  
+  # Store results
+  sim_est[, i] <- sim_parEst$est
+  sim_se[, i]  <- sim_parEst$se
+  
+  sim_ci[, i] <- as.numeric(population_parameters$est >= sim_parEst$ci.lower & 
+                              population_parameters$est <= sim_parEst$ci.upper)
+  
+  sim_ci[, i] <- ifelse(sim_parEst$ci.lower == sim_parEst$ci.upper, NA, sim_ci[, i])
+}
+
+t2 <- Sys.time()
+
+
+sim_est_mean <- rowMeans(sim_est[, !problem_flags], na.rm=TRUE)
+sim_se_mean <- rowMeans(sim_se[, !problem_flags], na.rm=TRUE)
+sim_ci_prop <- rowSums(sim_ci[, !problem_flags], na.rm=TRUE)/rowSums(!is.na(sim_ci[, !problem_flags]))
+
+all_params <- cbind(population_parameters, sim_est_mean, sim_se_mean, sim_ci_prop)
+#loading_params <- all_params[all_params$op == "=~", ]
+loading_params <- all_params
+
+loading_params$loading_abs_bias <- round(loading_params$est - loading_params$sim_est_mean, 4)
+loading_params$loading_rel_bias <- round(loading_params$loading_abs_bias/loading_params$est, 4)
+
+loading_params$se_abs_bias <- round(loading_params$se - loading_params$sim_se_mean, 4)
+loading_params$se_rel_bias <- round(loading_params$se_abs_bias/loading_params$se, 4)
+
+
+bias_ind <- which(sim_ci_prop < 0.90)
+
+titles <- paste0(loading_params$lhs[bias_ind], loading_params$op[bias_ind], loading_params$rhs[bias_ind])  # or your own custom vector
+
+par(mfrow = c(4, 3))
+for (i in 1:10) {hist(sim_est[bias_ind[i], ], main = titles[i])}
+
+
+
+###########
+# simsem
+
+library(simsem)
+
+CFAmodel_bifactor <- '
+  # Specific factors
+  NonAccept  =~ NA*S.DERS8_BL + S.DERS4_BL + S.DERS1_BL + S.DERS5_BL + S.DERS12_BL + S.DERS20_BL + S.DERS18_BL
+  Modulate   =~ NA*S.DERS13_BL + S.DERS17_BL + S.DERS10_BL + S.DERS3_BL + S.DERS15_BL + S.DERS21_BL + S.DERS9_BL
+  Awareness  =~ NA*S.DERS6_BL.r + S.DERS11_BL.r + S.DERS2_BL.r + S.DERS19_BL.r + S.DERS16_BL.r
+  Clarity    =~ 0.5*S.DERS14_BL + S.DERS7_BL
+
+  # General factor
+  G =~ NA*S.DERS8_BL + S.DERS4_BL + S.DERS1_BL + S.DERS5_BL + S.DERS12_BL + S.DERS20_BL + S.DERS18_BL +
+       S.DERS13_BL + S.DERS17_BL + S.DERS10_BL + S.DERS3_BL + S.DERS15_BL + S.DERS21_BL + S.DERS9_BL +
+       S.DERS6_BL.r + S.DERS11_BL.r + S.DERS2_BL.r + S.DERS19_BL.r + S.DERS16_BL.r +
+       S.DERS14_BL + S.DERS7_BL
+
+  # Fix latent variances for identification
+  G ~~ 1*G
+  NonAccept ~~ 1*NonAccept
+  Modulate ~~ 1*Modulate
+  Awareness ~~ 1*Awareness
+  Clarity ~~ 1*Clarity
+
+  # Orthogonal latent factors (bifactor structure)
+  G ~~ 0*NonAccept
+  G ~~ 0*Modulate
+  G ~~ 0*Awareness
+  G ~~ 0*Clarity
+  NonAccept ~~ 0*Modulate
+  NonAccept ~~ 0*Awareness
+  NonAccept ~~ 0*Clarity
+  Modulate ~~ 0*Awareness
+  Modulate ~~ 0*Clarity
+  Awareness ~~ 0*Clarity
+  
+'
+
+
+populationModel <- '
+  # General factor
+  G =~ 0.50*S.DERS8_BL + 0.50*S.DERS4_BL + 0.50*S.DERS1_BL + 
+       0.50*S.DERS5_BL + 0.50*S.DERS12_BL + 0.50*S.DERS20_BL + 
+       0.50*S.DERS18_BL + 0.50*S.DERS13_BL + 0.50*S.DERS17_BL + 
+       0.50*S.DERS10_BL + 0.50*S.DERS3_BL + 0.50*S.DERS15_BL + 
+       0.50*S.DERS21_BL + 0.50*S.DERS9_BL +
+       0.50*S.DERS6_BL.r + 0.50*S.DERS11_BL.r + 0.50*S.DERS2_BL.r + 
+       0.50*S.DERS19_BL.r + 0.50*S.DERS16_BL.r +
+       0.50*S.DERS14_BL + 0.50*S.DERS7_BL
+
+  # Specific factors
+  NonAccept =~ 0.50*S.DERS8_BL + 0.50*S.DERS4_BL + 0.50*S.DERS1_BL + 
+               0.50*S.DERS5_BL + 0.50*S.DERS12_BL + 0.50*S.DERS20_BL + 
+               0.50*S.DERS18_BL
+  Modulate   =~ 0.50*S.DERS13_BL + 0.50*S.DERS17_BL + 0.50*S.DERS10_BL + 
+                0.50*S.DERS3_BL + 0.50*S.DERS15_BL + 0.50*S.DERS21_BL + 
+                0.50*S.DERS9_BL
+  Awareness  =~ 0.50*S.DERS6_BL.r + 0.50*S.DERS11_BL.r + 0.50*S.DERS2_BL.r + 
+                0.50*S.DERS19_BL.r + 0.50*S.DERS16_BL.r
+  Clarity    =~ 0.50*S.DERS14_BL + 0.50*S.DERS7_BL
+
+  # Residual variances (1 - .5^2 - .5^2 = 0.5)
+  S.DERS8_BL ~~ 0.5*S.DERS8_BL
+  S.DERS4_BL ~~ 0.5*S.DERS4_BL
+  S.DERS1_BL ~~ 0.5*S.DERS1_BL
+  S.DERS5_BL ~~ 0.5*S.DERS5_BL
+  S.DERS12_BL ~~ 0.5*S.DERS12_BL
+  S.DERS20_BL ~~ 0.5*S.DERS20_BL
+  S.DERS18_BL ~~ 0.5*S.DERS18_BL
+  S.DERS13_BL ~~ 0.5*S.DERS13_BL
+  S.DERS17_BL ~~ 0.5*S.DERS17_BL
+  S.DERS10_BL ~~ 0.5*S.DERS10_BL
+  S.DERS3_BL ~~ 0.5*S.DERS3_BL
+  S.DERS15_BL ~~ 0.5*S.DERS15_BL
+  S.DERS21_BL ~~ 0.5*S.DERS21_BL
+  S.DERS9_BL ~~ 0.5*S.DERS9_BL
+  S.DERS6_BL.r ~~ 0.5*S.DERS6_BL.r
+  S.DERS11_BL.r ~~ 0.5*S.DERS11_BL.r
+  S.DERS2_BL.r ~~ 0.5*S.DERS2_BL.r
+  S.DERS19_BL.r ~~ 0.5*S.DERS19_BL.r
+  S.DERS16_BL.r ~~ 0.5*S.DERS16_BL.r
+  S.DERS14_BL ~~ 0.5*S.DERS14_BL
+  S.DERS7_BL ~~ 0.5*S.DERS7_BL
+
+  # Factor variances
+  G ~~ 1*G
+  NonAccept ~~ 1*NonAccept
+  Modulate ~~ 1*Modulate
+  Awareness ~~ 1*Awareness
+  Clarity ~~ 1*Clarity
+
+  # Factor covariances
+  G ~~ 0*NonAccept
+  G ~~ 0*Modulate
+  G ~~ 0*Awareness
+  G ~~ 0*Clarity
+  NonAccept ~~ 0*Modulate
+  NonAccept ~~ 0*Awareness
+  NonAccept ~~ 0*Clarity
+  Modulate ~~ 0*Awareness
+  Modulate ~~ 0*Clarity
+  Awareness ~~ 0*Clarity
+'
+
+results <- simsem::sim(n=214, generate=populationModel, model=CFAmodel_bifactor, lavaanfun="sem", nRep=10000, multicore=FALSE)
+
+simsem::summaryConverge(results)
+bifac__sim_results <- simsem::summaryParam(results, detail = TRUE, improper = FALSE)
+
+sum(abs(bifac__sim_results$`Rel Bias`) > 0.05)
+
+sum(abs(bifac__sim_results$`Rel SE Bias`) > 0.10)/nrow(bifac__sim_results)
+median(bifac__sim_results$`Rel SE Bias`)
+
+sum(bifac__sim_results$Coverage < 0.90)
+
+
+####################
+# ESEM with simsem
+
+
+esem_efaPromax_Lav <- esem_efa(data=LavMat, 
+                               nfactors =4,
+                               fm = 'pa',
+                               rotate="promax",
+                               residuals = TRUE)
+print(esem_efaPromax_Lav, cutoff=0.3)
+
+
+esem_modelPromax_Lav <- esem_syntax(esem_efaPromax_Lav)
+writeLines(esem_modelPromax_Lav)
+esem_fitPromax_Lav <- cfa(model=esem_modelPromax_Lav, sample.cov=LavMat, sample.nobs=484, std.lv=TRUE, estimator = "ML")
+
+summary(esem_fitPromax_Lav)
+
+#population_parameters <- assign_factor_labels(parameterEstimates(esem_fitPromax_Lav))
+simulation_parameters <- assign_factor_labels(parTable(esem_fitPromax_Lav))
+
+efa_model <- '
+efa("block1")*F1 + F2 + F3 + F4 =~ 
+  S.DERS8_BL + S.DERS4_BL + S.DERS1_BL + S.DERS5_BL + S.DERS12_BL + S.DERS20_BL + S.DERS18_BL +
+  S.DERS13_BL + S.DERS17_BL + S.DERS10_BL + S.DERS3_BL + S.DERS15_BL + S.DERS21_BL + S.DERS9_BL +
+  S.DERS6_BL.r + S.DERS11_BL.r + S.DERS2_BL.r + S.DERS19_BL.r + S.DERS16_BL.r +
+  S.DERS14_BL + S.DERS7_BL
+'
+
+
+results <- simsem::sim(n=214, generate=simulation_parameters, model=efa_model, lavaanfun="sem", nRep=10, multicore=FALSE)
+
+simsem::summaryConverge(results)
+simsem::summaryParam(results, detail = TRUE, improper = FALSE)
 
 
 

@@ -3,7 +3,7 @@
 
 # define which sample should be used for factor analyses
 # one of: c("full", "pt1", "pt2")
-sample <- "pt2"
+sample <- "full"
 
 #############################################################################################
 
@@ -23,6 +23,12 @@ library("nonnest2")
 library("reshape2")
 library("ggplot2")
 library("caret")
+library("tidyverse")
+library("ctsem")
+library("collapse")
+library("qgam")
+
+
 
 df <- read.csv(here::here("data", "SDERSvalid_DailyLife_data_preprocessed.csv"))
 
@@ -345,11 +351,10 @@ save_as_docx(flextable(FitCombined_noIC),path = here::here("manuscripts", "SDERS
 
 
 #####################################
-# reliability
-
+# follow-up analyses
 
 main_loadings_constructionSample <-   list(
-  NonAccept  = c("S.DERS8_ESM", "S.DERS4_ESM", "S.DERS1_ESM", "S.DERS5_ESM", "S.DERS12_ESM", "S.DERS20_ESM", "S.DERS18_ESM", "S.DERS15_ESM"),
+  NonAccept  = c("S.DERS8_ESM", "S.DERS4_ESM", "S.DERS1_ESM", "S.DERS5_ESM", "S.DERS12_ESM", "S.DERS20_ESM", "S.DERS18_ESM"),
   Modulate = c("S.DERS13_ESM", "S.DERS17_ESM", "S.DERS3_ESM","S.DERS21_ESM"),
   Awareness = c("S.DERS6_ESM.r", "S.DERS11_ESM.r", "S.DERS2_ESM.r", "S.DERS19_ESM.r", "S.DERS16_ESM.r"),
   Clarity = c("S.DERS14_ESM", "S.DERS7_ESM")
@@ -370,6 +375,75 @@ main_loadings_4item <-   list(
 )
 
 
+# score 18 item version
+df$S.DERS_NonAccept_mean18 <- rowMeans(df[, c('S.DERS8_ESM','S.DERS4_ESM','S.DERS1_ESM','S.DERS5_ESM','S.DERS12_ESM','S.DERS20_ESM','S.DERS18_ESM')])
+df$S.DERS_Modulate_mean18 <- rowMeans(df[, c('S.DERS13_ESM','S.DERS17_ESM','S.DERS3_ESM','S.DERS21_ESM')])
+df$S.DERS_Awareness_mean18 <- rowMeans(df[, c('S.DERS6_ESM.r','S.DERS11_ESM.r','S.DERS2_ESM.r','S.DERS19_ESM.r','S.DERS16_ESM.r')])
+df$S.DERS_Clarity_mean18 <- rowMeans(df[, c('S.DERS14_ESM','S.DERS7_ESM')])
+
+df$S.DERS_Total_mean18 <- rowMeans(df[, c('S.DERS1_ESM','S.DERS2_ESM.r','S.DERS3_ESM','S.DERS4_ESM','S.DERS5_ESM','S.DERS6_ESM.r','S.DERS7_ESM',
+                                        'S.DERS8_ESM', 'S.DERS11_ESM.r','S.DERS12_ESM','S.DERS13_ESM','S.DERS14_ESM',
+                                        'S.DERS16_ESM.r','S.DERS17_ESM','S.DERS18_ESM','S.DERS19_ESM.r','S.DERS20_ESM','S.DERS21_ESM')])
+
+# score 8 item version
+df$S.DERS_NonAccept_mean8 <- rowMeans(df[, c("S.DERS12_ESM", "S.DERS18_ESM")])
+df$S.DERS_Modulate_mean8 <- rowMeans(df[, c('S.DERS17_ESM','S.DERS3_ESM')])
+df$S.DERS_Awareness_mean8 <- rowMeans(df[, c('S.DERS6_ESM.r', 'S.DERS2_ESM.r')])
+df$S.DERS_Clarity_mean8 <- rowMeans(df[, c('S.DERS14_ESM','S.DERS7_ESM')])
+
+df$S.DERS_Total_mean8 <- rowMeans(df[, c('S.DERS12_ESM', 'S.DERS18_ESM','S.DERS17_ESM','S.DERS3_ESM', 'S.DERS6_ESM.r', 'S.DERS2_ESM.r', 'S.DERS14_ESM','S.DERS7_ESM')])
+
+
+# score 4 item version
+df$S.DERS_NonAccept_mean4 <- df[, c('S.DERS18_ESM')]
+df$S.DERS_Modulate_mean4 <- df[, c('S.DERS17_ESM')]
+df$S.DERS_Awareness_mean4 <- df[, c('S.DERS2_ESM.r')]
+df$S.DERS_Clarity_mean4 <- df[, c('S.DERS7_ESM')]
+
+df$S.DERS_Total_mean4 <- rowMeans(df[, c('S.DERS18_ESM','S.DERS17_ESM','S.DERS2_ESM.r','S.DERS7_ESM')])
+
+
+
+
+# correlations between forms
+
+questVers_corrs <- statsBy(df[, c("PARTICIPANT_ID", "S.DERS_Total_mean18", "S.DERS_Total_mean8", "S.DERS_Total_mean4")], group="PARTICIPANT_ID")
+
+round(questVers_corrs$rwg, 2)
+questVers_corrs$ci.wg
+
+round(questVers_corrs$rbg, 2)
+questVers_corrs$ci.bg
+
+# combined matrix for plotting
+combined_matrix <- questVers_corrs$rbg
+combined_matrix[lower.tri(combined_matrix)] <- questVers_corrs$rwg[lower.tri(questVers_corrs$rwg)]
+dimnames(combined_matrix) <- list(c("18 items", "8 items", "4 items"), c("18 items", "8 items", "4 items"))
+combined_matrix <- round(combined_matrix,2)
+corrplot(combined_matrix, method="pie", tl.col="black", tl.srt = 0, diag=FALSE, tl.offset = 0.65)
+
+
+
+# Correlations between forms for subscales
+questVers_corrs_subscales <- statsBy(df[, c("PARTICIPANT_ID", 
+                                            "S.DERS_NonAccept_mean18", "S.DERS_NonAccept_mean8", "S.DERS_NonAccept_mean4",
+                                            "S.DERS_Modulate_mean18", "S.DERS_Modulate_mean8", "S.DERS_Modulate_mean4",
+                                            "S.DERS_Awareness_mean18", "S.DERS_Awareness_mean8", "S.DERS_Awareness_mean4",
+                                            "S.DERS_Clarity_mean18", "S.DERS_Clarity_mean8", "S.DERS_Clarity_mean4")], 
+                                     group = "PARTICIPANT_ID")
+
+# Print within-group correlations
+round(questVers_corrs_subscales$rwg, 2)
+questVers_corrs_subscales$ci.wg
+
+# Print between-group correlations
+round(questVers_corrs_subscales$rbg, 2)
+questVers_corrs_subscales$ci.bg
+
+
+
+# reliability
+
 reliabilityModel <-  CFA_saveOrRead(ESEM4fixed, data = df, cluster = 'PARTICIPANT_ID', estimator = "MLR", filename = "ESEM4fixed_fit_pt2", "pt2")
 
 # reliability within
@@ -378,16 +452,42 @@ withinReliability <- rbind(ESEMlaiRelcustom(reliabilityModel, main_loadings_lave
                            ESEMlaiRelcustom(reliabilityModel, main_loadings_8item),
                            ESEMlaiRelcustom(reliabilityModel, main_loadings_4item))
 withinReliability <- withinReliability[str_detect(row.names(withinReliability), "omegaWithin"), ]
-withinReliability <- data.frame(Version = c("Lavender et al.", "Sicorello et al.", "8-Item", "4-Item"), withinReliability, row.names = NULL)
-withinReliability
+withinReliability <- data.frame(Version = c("Lavender et al.", "18-Item", "8-Item", "4-Item"), withinReliability, row.names = NULL)
+withinReliability <- withinReliability[-1,]
 
 save_as_docx(flextable(withinReliability),path = here::here("manuscripts", "SDERSvalid_dailyLife", "tables", "withinReliabilities.docx"))
+
+
+withinReliability_long <- withinReliability %>%
+  pivot_longer(cols = -Version, 
+               names_to = "Variable", 
+               values_to = "Value") %>%
+  mutate(Version = factor(Version),
+         Variable = factor(Variable)) %>%
+  as.data.frame()
+withinReliability_long$Version <- factor(withinReliability_long$Version, levels=c("18-Item", "8-Item", "4-Item"))
+withinReliability_long$Variable <- factor(withinReliability_long$Variable, levels=c("NonAccept", "Modulate", "Awareness", "Clarity", "Total"))
+
+ggplot(data=withinReliability_long, aes(x=Variable, y=Value, fill=Variable)) +
+  geom_bar(stat="identity") +
+  facet_grid(~Version) +
+  
+  ylab(expression("Reliability (" * omega * ")")) +
+  
+  theme(
+    axis.title.x = element_blank(),  
+    axis.text.x = element_blank(),  
+    axis.ticks.x = element_blank(), 
+    legend.title = element_blank()   
+  ) +
+  
+  ggtitle("Within-Person")
 
 
 # reliability between
 
 numN <- 50
-versions <- list("19item"=main_loadings_constructionSample, 
+versions <- list("18item"=main_loadings_constructionSample, 
                  "8item"=main_loadings_8item, 
                  "4item"=main_loadings_4item)
 betweenReliability <- as.data.frame(
@@ -415,33 +515,189 @@ betweenReliability <- melt(betweenReliability, id.vars=c("Version","ClusterSize"
 ggplot(betweenReliability, aes(x=ClusterSize, y=value, colour=variable)) + 
   geom_line() + 
   
-  facet_grid(~ Version)
+  facet_grid(~ Version) +
+  ylab(NULL) + 
+  xlab("Anzahl der Alltagsabfragen") +
+  
+  ggtitle("Between-Person")
+  
 ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "betweenReliabilities.svg"), device="svg")
 
 
 
-LSTcustom(reliabilityModel, main_loadings_lavender_no10)
+# LSTM decomposition
+
+LSTM_18 <- LSTcustom(reliabilityModel, main_loadings_constructionSample)
+LSTM_8 <- LSTcustom(reliabilityModel, main_loadings_8item)
+LSTM_4 <- LSTcustom(reliabilityModel, main_loadings_4item)
+
+relPlot_LSTM_18 <- LSTM_18 %>%
+  rownames_to_column("Category") %>%
+  pivot_longer(-Category, names_to = "Variable", values_to = "Value")
+
+relPlot_LSTM_8 <- LSTM_8 %>%
+  rownames_to_column("Category") %>%
+  pivot_longer(-Category, names_to = "Variable", values_to = "Value")
+
+relPlot_LSTM_4 <- LSTM_4 %>%
+  rownames_to_column("Category") %>%
+  pivot_longer(-Category, names_to = "Variable", values_to = "Value")
+
+relPlot_comb <- rbind(relPlot_LSTM_18, relPlot_LSTM_8, relPlot_LSTM_4)
+relPlot_comb$version <- rep(c("18-item", "8-item", "4-item"), each = nrow(relPlot_comb)/3)
+relPlot_comb$Category <- factor(relPlot_comb$Category, levels=c("uniqueState", "commonState", "uniqueTrait", "commonTrait"))
+relPlot_comb$Variable <- factor(relPlot_comb$Variable, levels=c("Total", "NonAccept", "Modulate", "Awareness", "Clarity"))
+relPlot_comb$version <- factor(relPlot_comb$version, levels=c("18-item", "8-item", "4-item"))
+names(relPlot_comb) <- c("Source", "Scale", "Variance", "Version")
+
+ggplot(data=relPlot_comb, aes(x=Scale, y=Variance, fill=Source)) +
+  geom_bar(stat="identity") +
+  facet_wrap(~Version, scales = "free_x", strip.position = "bottom", nrow=1)+
+  
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+  xlab(NULL) + ylab("Variance in sum score") +
+  theme(strip.background = element_blank(), panel.border = element_blank(), panel.spacing = unit(0.5, "lines")) +
+  theme(strip.placement = "outside", strip.text.x = element_text(vjust = -0.5)) +
+  guides(fill = guide_legend(title = NULL)) +
+  scale_fill_manual(values = c("commonTrait" = "darkblue", 
+                               "uniqueTrait" = "lightblue", 
+                               "commonState" = "darkred", 
+                               "uniqueState" = "red"),
+                    labels=c("Unique State", "Common State", "Unique Trait", "Common Trait")) 
+  
+
+ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "LSTM_decomposition.svg"), device="svg", width = 6.75, height = 3.25, units = "in")
 
 
 
-FactorValidityCustom(ESEM4fixed_fit, main_loadings_lavender_no10[c("NonAccept", "Awareness", "Modulate", "Clarity")])
-
-FactorValidityCustom(ESEM4fixed_fit, main_loadings_constructionSample[c("NonAccept", "Awareness", "Modulate", "Clarity")])
 
 
+################
+# convergent and discriminant validity
+summary(ESEM4fixed_fit, standardized=TRUE)
+
+
+# factor intercorrelations
+
+ESEM4fixed_fit <- CFA_saveOrRead(ESEM4fixed, data = df, cluster = 'PARTICIPANT_ID', estimator = "MLR", filename = "ESEM4fixed_fit_pt2", "pt2")
+
+factorIntercorr <- round(as.data.frame(inspect(ESEM4fixed_fit, what = "std.lv")$PARTICIPANT_ID$psi),2)
+factorIntercorr <- cbind(rownames(factorIntercorr), factorIntercorr)
+
+save_as_docx(flextable(factorIntercorr), path = here::here("manuscripts", "SDERSvalid_dailyLife", "tables", paste0("factorIntercorrs_", sample, ".docx")))
+
+
+validWithin <- FactorValidityCustom(ESEM4fixed_fit, main_loadings_constructionSample[c("NonAccept", "Modulate", "Awareness", "Clarity")], correlation=TRUE)$within
+validBetween <- FactorValidityCustom(ESEM4fixed_fit, main_loadings_constructionSample[c("NonAccept", "Modulate", "Awareness", "Clarity")], correlation=TRUE)$between
+
+
+validCombined <- validWithin
+for (col in colnames(validWithin)) {
+  for (row in rownames(validWithin)) {
+    validCombined[row, col] <- paste0(
+      sprintf("%.2f", validWithin[row, col]), " (", sprintf("%.2f", validBetween[row, col]), ")"
+    )
+  }
+}
+
+validCombined <- as.data.frame(cbind(rownames(validCombined), validCombined))
+
+save_as_docx(flextable(validCombined), path = here::here("manuscripts", "SDERSvalid_dailyLife", "tables", paste0("convDiscrValidity_", sample, ".docx")))
+
+
+################
+# stability (only compute this with full sample!!)
+
+df$Datetime <- as.POSIXct(paste(df$Date, df$Time), format = "%Y-%m-%d %H:%M:%S")
+
+dfstab <- df[order(df$PARTICIPANT_ID, df$Datetime), ]
+
+# Create a continuous time variable (e.g., hours since the earliest datetime)
+dfstab <- dfstab %>%
+  group_by(PARTICIPANT_ID) %>%
+  mutate(Time_Elapsed = as.numeric(difftime(Datetime, min(Datetime), units = "hours"))) %>%
+  ungroup()
+
+
+dfstab[, c("PARTICIPANT_ID", "Date", "Time", "Time_Elapsed")] 
+
+# Fit continuous AR(1) model
+stabilityModel <- lme(
+  S.DERS_Total_mean18 ~ 1, 
+  random = ~1 | PARTICIPANT_ID, 
+  correlation = corCAR1(form = ~ Time_Elapsed | PARTICIPANT_ID), 
+  data = dfstab,
+  na.action = na.omit
+)
+summary(stabilityModel)
+
+
+# Extract decay rate (lambda). careful: done manually because no extraction method found
+lambda <- -log(0.697)
+
+# Create a plotsigma# Create a plot
+timesteps <- seq(0, 10, length.out = 100)
+ar_values <- exp(-lambda * timesteps)
+ci_upper <- ar_values + 0.1  # Example confidence intervals. not valid!
+ci_lower <- ar_values - 0.1
+
+plot(timesteps, ar_values, type = "l", ylim = c(0, 1), ylab = "Autoregression", xlab = "Timestep")
+polygon(c(timesteps, rev(timesteps)), c(ci_upper, rev(ci_lower)), col = "grey80", border = NA)
+lines(timesteps, ar_values, col = "blue", lwd = 2)
+
+
+dfstab <- dfstab %>%
+  group_by(PARTICIPANT_ID) %>% # Group by participant
+  mutate(
+    mean_S.DERS_Total = mean(S.DERS_Total_mean18, na.rm = TRUE), 
+    S.DERS_Total_centered = S.DERS_Total_mean18 - mean_S.DERS_Total,
+    mean_valence = mean(AFFECT_ESM_X, na.rm = TRUE),
+    valence_centered = AFFECT_ESM_X - mean_valence
+  ) %>%
+  ungroup() # Ungroup when done
+
+dfstab$S.DERS_Total_scaled <- dfstab$S.DERS_Total_centered/sd(dfstab$S.DERS_Total_centered)
+dfstab$valence_scaled <- dfstab$valence_centered/sd(dfstab$valence_centered, na.rm=TRUE)
+
+ctACF(dfstab, varnames = "valence_scaled", idcol="PARTICIPANT_ID", timecol="Time_Elapsed", timestep=1, time.max=72, nboot=100)
+stabilityPlot <- ctACF(dfstab, varnames = "S.DERS_Total_scaled", idcol="PARTICIPANT_ID", timecol="Time_Elapsed", timestep=1, time.max=72, nboot=500)
+
+stabilityPlot +
+  ylab("Autocorrelation") + xlab("Time interval (h)") +
+  ylim(c(-0.2, 1)) +
+  scale_x_continuous(breaks = seq(0, 60, by = 10)) 
+
+ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", paste("stability_", sample, ".svg")), device="svg")
 
 
 
+dfstab_NA_DERS <- dfstab[!is.na(dfstab$DERS_Total_mean), ]
+dfstab_lowDERS <- dfstab_NA_DERS[dfstab_NA_DERS$DERS_Total_mean <= median(dfstab_NA_DERS$DERS_Total_mean), ]
+dfstab_highDERS <- dfstab_NA_DERS[dfstab_NA_DERS$DERS_Total_mean > median(dfstab_NA_DERS$DERS_Total_mean), ]
+ctACF(dfstab_lowDERS, varnames = "S.DERS_Total_scaled", idcol="PARTICIPANT_ID", timecol="Time_Elapsed", timestep=1, time.max=72, nboot=100)
+ctACF(dfstab_highDERS, varnames = "S.DERS_Total_scaled", idcol="PARTICIPANT_ID", timecol="Time_Elapsed", timestep=1, time.max=72, nboot=100)
 
+#ctACF(dfstab, varnames = "S.DERS_Total_mean18", idcol="PARTICIPANT_ID", timecol="Time_Elapsed", timestep=1, time.max=10, nboot=100)
 
+# Fit continuous AR(1) model
+stabilityModel <- lme(
+  S.DERS_Total_scaled ~ 1, 
+  random = ~1 | PARTICIPANT_ID, 
+  correlation = corCAR1(form = ~ Time_Elapsed | PARTICIPANT_ID), 
+  data = dfstab_lowDERS,
+  na.action = na.omit
+)
+summary(stabilityModel)
 
-
-
-
-
-
-
-
+stabilityModel <- lme(
+  S.DERS_Total_scaled ~ 1, 
+  random = ~1 | PARTICIPANT_ID, 
+  correlation = corCAR1(form = ~ Time_Elapsed | PARTICIPANT_ID), 
+  data = dfstab_highDERS,
+  na.action = na.omit
+)
+summary(stabilityModel)
 
 
 #####################################################################################################################

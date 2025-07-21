@@ -174,12 +174,12 @@ df$IERQ_Total_meanUnweighted <- rowMeans(df[, c("IERQ_EnhancePA_mean", "IERQ_Per
 ############
 # DASS-21
 
-DASS_Depression_sum <- rowSums(df[, c('DASS3','DASS5','DASS10','DASS13','DASS16','DASS17','DASS21')])
-DASS_Depression_mean <- rowMeans(df[, c('DASS3','DASS5','DASS10','DASS13','DASS16','DASS17','DASS21')])
-DASS_Anxiety_sum <- rowSums(df[, c('DASS2','DASS4','DASS7','DASS9','DASS15','DASS19','DASS20')])
-DASS_Anxiety_mean <- rowMeans(df[, c('DASS2','DASS4','DASS7','DASS9','DASS15','DASS19','DASS20')])
-DASS_Stress_sum <- rowSums(df[, c('DASS1','DASS6','DASS8','DASS11','DASS12','DASS14','DASS18')])
-DASS_Stress_mean <- rowMeans(df[, c('DASS1','DASS6','DASS8','DASS11','DASS12','DASS14','DASS18')])
+df$DASS_Depression_sum <- rowSums(df[, c('DASS3','DASS5','DASS10','DASS13','DASS16','DASS17','DASS21')])
+df$DASS_Depression_mean <- rowMeans(df[, c('DASS3','DASS5','DASS10','DASS13','DASS16','DASS17','DASS21')])
+df$DASS_Anxiety_sum <- rowSums(df[, c('DASS2','DASS4','DASS7','DASS9','DASS15','DASS19','DASS20')])
+df$DASS_Anxiety_mean <- rowMeans(df[, c('DASS2','DASS4','DASS7','DASS9','DASS15','DASS19','DASS20')])
+df$DASS_Stress_sum <- rowSums(df[, c('DASS1','DASS6','DASS8','DASS11','DASS12','DASS14','DASS18')])
+df$DASS_Stress_mean <- rowMeans(df[, c('DASS1','DASS6','DASS8','DASS11','DASS12','DASS14','DASS18')])
 
 df$DASS_Total_sum <- rowSums(df[, c('DASS1','DASS2','DASS3','DASS4','DASS5','DASS6','DASS7',
                                  'DASS8','DASS9','DASS10','DASS11','DASS12','DASS13','DASS14',

@@ -39,8 +39,47 @@ itemOrder <- c("S.DERS8_ESM", "S.DERS4_ESM", "S.DERS1_ESM", "S.DERS5_ESM", "S.DE
 SDERSsumScaleNames <- c("S.DERS_NonAccept_EMAmean", "S.DERS_Modulate_EMAmean", "S.DERS_Awareness_EMAmean", "S.DERS_Clarity_EMAmean", "S.DERS_Total_EMAmean")
 
 
+
 ######################################################################
 # Descriptive statistics
+
+
+
+
+
+#####################################
+# sample descriptives (cross-sectional)
+
+
+names(df)
+
+participant_counts <- as.data.frame(table(df$PARTICIPANT_ID))
+participant_counts$perc <- participant_counts$Freq/60
+
+hist(participant_counts$perc)
+describe(participant_counts$perc)
+describe(participant_counts$Freq)
+
+dfcrossSec <- unique(df[, c("PARTICIPANT_ID", "SEX", "AGE", "OCCUPATION", "ACAD.DEGREE", "questDuration")])
+dfcrossSec$questDuration <- dfcrossSec$questDuration/60
+
+
+
+hist(dfcrossSec$questDuration)
+
+#dftest <- unique(dfHealth[, c("PARTICIPANT_ID", "MENT.HEALTH")])
+#round(table(dftest$MENT.HEALTH)/sum(table(dftest$MENT.HEALTH))*100, 1) # occupation
+
+round(table(dfcrossSec$OCCUPATION)/sum(table(dfcrossSec$OCCUPATION))*100, 1) # occupation
+round(table(dfcrossSec$SEX)/sum(table(dfcrossSec$SEX))*100, 1) # sex
+
+psych::describe(dfcrossSec)
+
+names(df)
+
+
+
+#####################################
 
 describe(dfSDERS)
 
@@ -77,7 +116,7 @@ dfcorrItems <- ifelse(is.na(dfcorrItems), "-", dfcorrItems)
 dfDescriptiveItems <- data.frame(dfDescriptiveItems, dfcorrItems)
 names(dfDescriptiveItems)[str_detect(names(dfDescriptiveItems), "S.DERS")] <- as.character(c(1:21))
 
-save_as_docx(flextable(dfDescriptiveItems),path = here::here("manuscripts", "SDERSvalid_dailyLife", "tables", "DescriptivesByItem.docx"))
+flextable::save_as_docx(flextable::flextable(dfDescriptiveItems),path = here::here("manuscripts", "SDERSvalid_dailyLife", "tables", "DescriptivesByItem.docx"))
 
 
 # Corrplots
@@ -87,3 +126,41 @@ corrplot(mcfaInput$ab.cor, method = "square", order = 'hclust', addrect = 5)
 corrplot(mcfaInput$pw.cor[itemOrder,itemOrder], method = "square")
 corrplot(mcfaInput$ab.cor[itemOrder,itemOrder], method = "square")
 
+itemOrder_small <- itemOrder[-(which(itemOrder %in% c("S.DERS10_ESM", "S.DERS9_ESM", "S.DERS15_ESM")))]
+
+corrplot(mcfaInput$pw.cor[itemOrder_small,itemOrder_small], method = "square", order = 'hclust', addrect = 4)
+corrplot(mcfaInput$ab.cor[itemOrder_small,itemOrder_small], method = "square", order = 'hclust', addrect = 4)
+
+# within
+corrM_within <- mcfaInput$pw.cor[itemOrder,itemOrder]
+
+svg(file=here::here("manuscripts", "SDERSvalid_dailyLife","figures", "corrPlot_within.svg"))
+rownames(corrM_within) <- as.numeric(unlist(str_extract_all(rownames(corrM_within), "\\d+")))
+colnames(corrM_within) <- as.numeric(unlist(str_extract_all(colnames(corrM_within), "\\d+")))
+corrplot(corrM_within, method = "square", tl.col="black", tl.srt = 0)
+dev.off()
+
+
+# between
+corrM_between <- mcfaInput$ab.cor[itemOrder,itemOrder]
+
+svg(file=here::here("manuscripts", "SDERSvalid_dailyLife","figures", "corrPlot_between.svg"))
+rownames(corrM_between) <- as.numeric(unlist(str_extract_all(rownames(corrM_between), "\\d+")))
+colnames(corrM_between) <- as.numeric(unlist(str_extract_all(colnames(corrM_between), "\\d+")))
+corrplot(corrM_between, method = "square", tl.col="black", tl.srt = 0)
+dev.off()
+
+
+# mood induction
+
+dfmoodInd <- read.csv(here::here("data", "SDERSvalid_crossSec_data_preprocessed.csv"))
+dfmoodInd <- dfmoodInd[, str_replace(itemOrder, "ESM", "BL")]
+
+
+corrM_moodInd <- cor(dfmoodInd)[str_replace(itemOrder, "ESM", "BL"),str_replace(itemOrder, "ESM", "BL")]
+
+svg(file=here::here("manuscripts", "SDERSvalid_dailyLife","figures", "corrPlot_moodInd.svg"))
+rownames(corrM_moodInd) <- as.numeric(unlist(str_extract_all(rownames(corrM_moodInd), "\\d+")))
+colnames(corrM_moodInd) <- as.numeric(unlist(str_extract_all(colnames(corrM_moodInd), "\\d+")))
+corrplot(corrM_moodInd, method = "square", tl.col="black", tl.srt = 0)
+dev.off()

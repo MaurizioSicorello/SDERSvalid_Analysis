@@ -434,17 +434,16 @@ persModel_ct <- ctModel(type="ct",
                           "drift_Affect_Affect",    "drift_Regulation_Affect",    "drift_Stressors_Affect",
                           "drift_Affect_Regulation","drift_Regulation_Regulation","drift_Stressors_Regulation",
                           "drift_Affect_Stressors", "drift_Regulation_Stressors", "drift_Stressors_Stressors"
-                        ), 3, 3, byrow = TRUE)
-                        ) 
+                        ), 3, 3, byrow = TRUE)) 
 
 
-persModel_ct_fit <- ctFit(dat=df_test,
+persModel_ct_fit <- ctFit(dat=df_ctSEM,
                           ctmodelobj=persModel_ct,
-                          dataform="wide")
+                          df_ctSEM)
 
 summary(persModel_ct_fit)
 
-
+ctGenerate(persModel_ct)
 
 
 

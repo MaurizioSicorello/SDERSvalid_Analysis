@@ -3,7 +3,7 @@
 
 # define which sample should be used for factor analyses
 # one of: c("full", "pt1", "pt2")
-sample <- "full"
+sample <- "pt1"
 
 #############################################################################################
 
@@ -286,6 +286,44 @@ ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", paste("loadin
 #OPTION FÜR UNLESERLICHE DREI LOADINGS. HÄNDISCH JITTERN! EINFACH WERTE IN TABELLE ERSETZEN
 
 
+### Save loadings as doc
+
+combined_loadings <- mapply(
+  function(w, b) sprintf("%.2f (%.2f)", w, b),
+  loadingswithin_ordered,
+  loadingsBetween_ordered,
+  SIMPLIFY = FALSE
+)
+
+# In Dataframe umwandeln
+combined_df <- as.data.frame(matrix(
+  unlist(combined_loadings),
+  nrow = nrow(loadingswithin_ordered),
+  byrow = FALSE,
+  dimnames = list(rownames(loadingswithin_ordered), colnames(loadingswithin_ordered))
+))
+
+combined_df <- cbind(Item = rownames(combined_df), combined_df)
+
+# Flextable erstellen
+ft <- flextable(combined_df)
+ft <- autofit(ft)
+
+# Export-Pfad definieren (ggf. sample definieren, falls verwendet)
+docx_path <- here::here("manuscripts", "SDERSvalid_dailyLife", "tables", paste0("loadings_within_between_", sample, ".docx"))
+
+# Als Word-Datei speichern
+save_as_docx(ft, path = docx_path)
+
+
+
+#### G-factor model
+
+ESEM4fixed_h <- paste(ESEM4fixed, "G =~ NonAccept + Modulate + Clarity + Awareness")
+
+ESEM4fixed_fit <- CFA_saveOrRead(ESEM4fixed_h, data = df, cluster = 'PARTICIPANT_ID', estimator = "MLR", filename = paste0("ESEM4fixed_fit__h", sample))
+
+
 #####################################
 # Model 4: Cross-loadings without equality constraints
 
@@ -423,6 +461,32 @@ combined_matrix <- round(combined_matrix,2)
 corrplot(combined_matrix, method="pie", tl.col="black", tl.srt = 0, diag=FALSE, tl.offset = 0.65)
 
 
+png_path <- here::here("manuscripts", "SDERSvalid_dailyLife", "figures", "corrplot_shortVersions.png")
+
+# Save the plot
+png(filename = png_path,
+    width = 3.25,         # APA 1-column width in inches
+    height = 3.25,        # Square layout, adjust if needed
+    units = "in",
+    res = 600)   
+corrplot(combined_matrix, method="shade", addCoef.col = 'white', tl.col="black", tl.srt = 0, diag=FALSE, tl.offset = 0.65, cl.pos="n")
+
+# Overlay black squares on the diagonal
+n <- nrow(combined_matrix)
+coords <- seq(n, 1)  # corrplot plots from top-left
+
+# Add black squares manually
+for (i in 1:n) {
+  rect(xleft = i - 0.5, ybottom = coords[i] - 0.5,
+       xright = i + 0.5, ytop = coords[i] + 0.5,
+       col = "black", border = NA)
+}
+
+dev.off()
+
+
+
+
 
 # Correlations between forms for subscales
 questVers_corrs_subscales <- statsBy(df[, c("PARTICIPANT_ID", 
@@ -483,6 +547,35 @@ ggplot(data=withinReliability_long, aes(x=Variable, y=Value, fill=Variable)) +
   
   ggtitle("Within-Person")
 
+ggplot(withinReliability_long, aes(x = Variable, y = Value, group = Version, color = Version)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 3) +
+  scale_y_continuous(limits = c(0, 1.0), breaks = seq(0, 1.0, 0.1)) +
+  labs(
+    x = NULL,
+    y = "Within-person reliability",
+    color = NULL
+  ) +
+  scale_x_discrete(labels = c(
+    "NonAccept" = "Non-Acceptance",
+    "Modulate" = "Modulate",
+    "Awareness" = "Awareness",
+    "Clarity" = "Clarity",
+    "Total" = "Total"
+  )) +
+  theme_classic() +
+  scale_color_viridis_d(option = "D") +
+  theme(
+    panel.grid.major.y = element_line(linetype = "dashed", color = "gray80"),
+    text = element_text(size = 12),
+    axis.text.x = element_text(angle = 30, hjust = 1)
+  ) +
+  theme(legend.position = c(0.05, 0.05),  # adjust as needed
+        legend.justification = c(0, 0),
+        legend.background = element_rect(fill = "white", color = NA))
+
+ggsave(here::here("manuscripts", "SDERSvalid_dailyLife", "figures", "withinReliabilities.png"), width = 3.5, height = 3, dpi = 300, units = "in")
+
 
 # reliability between
 
@@ -512,18 +605,42 @@ betweenReliability <- data.frame(Version=factor(rep(names(versions), each=numN),
                                  betweenReliability)
 betweenReliability <- melt(betweenReliability, id.vars=c("Version","ClusterSize"))
 
-ggplot(betweenReliability, aes(x=ClusterSize, y=value, colour=variable)) + 
-  geom_line() + 
   
-  facet_grid(~ Version) +
-  ylab(NULL) + 
-  xlab("Anzahl der Alltagsabfragen") +
-  
-  ggtitle("Between-Person")
-  
-ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "betweenReliabilities.svg"), device="svg")
+betweenReliability[betweenReliability$Version == "4item", ]
 
+ggplot(betweenReliability, aes(x = ClusterSize, y = value, colour = variable)) + 
+  geom_line(linewidth = 1) +
+  facet_grid(. ~ Version, scales = "fixed") +
+  scale_color_viridis_d(
+    option = "D",
+    begin = 0.1, end = 0.9,
+    labels = c(
+      "NonAccept" = "Non-Acceptance",
+      "Modulate" = "Modulate",
+      "Awareness" = "Awareness",
+      "Clarity" = "Clarity",
+      "Total" = "Total"
+    )
+  ) +
+  scale_y_continuous(limits = c(0.6, 1), breaks = seq(0.6, 1.0, 0.1)) +
+  labs(
+    x = "# Questionnaires",
+    y = "Between-person reliability",
+    colour = NULL
+  ) +
+  theme_classic(base_size = 12) +
+  theme(
+    strip.background = element_rect(color = "black", fill = "white"),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    axis.line = element_line(color = "black"),
+    panel.grid.major.y = element_line(color = "grey80", linetype = "dashed"),
+    panel.grid.minor.y = element_blank(),
+    panel.grid.major.x = element_blank(),
+    legend.position = "right"
+  )
 
+ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "betweenReliabilities.png"), device="png", width = 7, height = 3, dpi = 300, units = "in")
 
 # LSTM decomposition
 
@@ -550,6 +667,11 @@ relPlot_comb$Variable <- factor(relPlot_comb$Variable, levels=c("Total", "NonAcc
 relPlot_comb$version <- factor(relPlot_comb$version, levels=c("18-item", "8-item", "4-item"))
 names(relPlot_comb) <- c("Source", "Scale", "Variance", "Version")
 
+relPlot_comb$Scale <- factor(relPlot_comb$Scale,
+                      levels = c("Total", "NonAccept", "Modulate", "Awareness", "Clarity"),
+                      labels = c("Total", "Non-Acceptance", "Modulate", "Awareness", "Clarity")
+)
+
 ggplot(data=relPlot_comb, aes(x=Scale, y=Variance, fill=Source)) +
   geom_bar(stat="identity") +
   facet_wrap(~Version, scales = "free_x", strip.position = "bottom", nrow=1)+
@@ -564,10 +686,10 @@ ggplot(data=relPlot_comb, aes(x=Scale, y=Variance, fill=Source)) +
                                "uniqueTrait" = "lightblue", 
                                "commonState" = "darkred", 
                                "uniqueState" = "red"),
-                    labels=c("Unique State", "Common State", "Unique Trait", "Common Trait")) 
+                    labels=c("Unique state", "Common state", "Unique trait", "Common trait")) 
   
 
-ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "LSTM_decomposition.svg"), device="svg", width = 6.75, height = 3.25, units = "in")
+ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "LSTM_decomposition.png"), device="png", width = 6.75, height = 3.25, units = "in")
 
 
 

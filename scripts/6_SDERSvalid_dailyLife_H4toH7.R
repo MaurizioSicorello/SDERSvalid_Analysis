@@ -15,6 +15,10 @@ library("effects")
 library("yardstick")
 library("reshape2")
 library("ctsem")
+library("papaja")
+library("flextable")
+library("apaTables")
+
 
 source(here::here("functions", "MultilevelRSA_25082019.R"))
 
@@ -105,6 +109,19 @@ df <- df %>%
 
 
 ###############################################
+# Descriptives
+
+df_descr <- df[, c("DERS_Total_mean", "NEO_N_mean", "DASS_Total_mean", 
+       "S.DERS_Total_PM", "S.DERS_NonAccept_PM", "S.DERS_Modulate_PM", "S.DERS_Awareness_PM", "S.DERS_Clarity_PM",
+       "affect_valence_PM", "affect_arousal_PM", "stressors_PM")]
+
+df_descr <- unique(df_descr)
+
+apa.cor.table(df_descr, filename = here::here("manuscripts", "SDERSvalid_dailyLife", "tables", "traitDescriptives.doc"))
+
+
+
+###############################################
 # H4: state-trait correspondance
 
 # simple correlations
@@ -112,8 +129,8 @@ dfcrossSecDERS <- unique(df[, c("PARTICIPANT_ID", "DERS_Total_sum", "S.DERS_Tota
 dfcrossSecDERS <- dfcrossSecDERS[complete.cases(dfcrossSecDERS), ]
 
 rcorr(as.matrix(dfcrossSecDERS[,-1]))
-cor.test(dfcrossSecDERS[,"DERS_Total_sum"], dfcrossSecDERS[,"S.DERS_Total_PM"])
-cor.test(dfcrossSecDERS[,"S.DERS_Total_sum"], dfcrossSecDERS[,"S.DERS_Total_PM"])
+cor.test(dfcrossSecDERS$DERS_Total_sum, dfcrossSecDERS$S.DERS_Total_PM)
+cor.test(dfcrossSecDERS$S.DERS_Total_sum, dfcrossSecDERS$S.DERS_Total_PM)
 
 # correlations as a function of n datapoints
 corrOut <- as.data.frame(
@@ -163,6 +180,7 @@ ggplot(corrOut, aes(x = 1:nrow(corrOut), y = corr)) +
   ylab("State-trait correlation")
 
 ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "stateTraitCorrelationByN.svg"), device="svg")
+ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "stateTraitCorrelationByN.png"), device="png", width = 3.5, height = 3, dpi = 300, units = "in")
 
 
 
@@ -216,6 +234,12 @@ affectModel <- lme(data=df, S.DERS_Total_scaled ~
                    na.action = na.exclude,
                    control=lmeControl(msMaxIter = 100, opt = "optim"))
 summary(affectModel)
+apa <- apa_print(affectModel)
+
+# Create flextable from the table
+ft <- flextable(apa$table)
+ft <- autofit(ft)
+save_as_docx(ft, path=here::here("manuscripts", "SDERSvalid_dailyLife","tables", "affect_model.docx"))
 
 
 # tried different rotations, but generally this looks awful. create interaction plot instead
@@ -273,11 +297,6 @@ affectPlot_within <- ggplot(data=predicted_df, aes(y=predicted_S_DERS_Total_scal
   ggtitle("Within-person")
 
 
-ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "arousalValenceInteraction_within.svg"), device="svg")
-
-
-
-
 
 
 predict_affect_between <- function(model, valence_range, arousal_range) {
@@ -328,15 +347,55 @@ affectPlot_between <- ggplot(data=predicted_df_between, aes(y=predicted_S_DERS_T
   theme(legend.position = "top", legend.direction = "horizontal") +
   ggtitle("Between-person")
 
-ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "arousalValenceInteraction_between.svg"), device="svg")
 
 
+cowplot::plot_grid(affectPlot_within, affectPlot_between, nrow=1)
 
-plot_grid(affectPlot_within, affectPlot_between, nrow=1)
 ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "arousalValenceInteraction_panelPlot.svg"), device="svg")
 
 
 
+# Required libraries
+
+
+# Remove x/y labels and legends from individual plots
+affectPlot_within <- ggplot(data = predicted_df,
+                            aes(x = affect_valence_PMcen_scaled, 
+                                y = predicted_S_DERS_Total_scaled, 
+                                colour = factor(affect_arousal_PMcen_scaled))) +
+  geom_line() +
+  theme_bw() +
+  labs(color = "Arousal") +
+  theme(
+    legend.position = "top",
+    legend.direction = "horizontal",
+    axis.title = element_blank()
+  ) +
+  ylim(-0.45, 0.6)
+
+affectPlot_between <- ggplot(data = predicted_df_between,
+                             aes(x = affect_valence_PM_scaled, 
+                                 y = predicted_S_DERS_Total_scaled, 
+                                 colour = factor(affect_arousal_PM_scaled))) +
+  geom_line() +
+  theme_bw() +
+  labs(color = "Arousal") +
+  theme(
+    legend.position = "none",
+    axis.title = element_blank()
+  ) +
+  ylim(-0.45, 0.6)
+
+final_plot <- affectPlot_within + affectPlot_between +
+  plot_layout(ncol = 2, guides = "collect") &
+  theme(legend.position = "top") &
+  labs(
+    x = "Valence",
+    y = "S-DERS predicted value"
+  )
+
+
+ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "affectPlots.png"), final_plot, width = 7, height = 3.5, dpi = 300)
 
 
 
@@ -385,22 +444,13 @@ df <- df %>%
   ungroup()
 
 persModel <- lme(data=df, AFFECT_ESM_X_lag_minus1 ~ affect_valence_PMcen_scaled*S.DERS_Total_PMcen_scaled, 
-                   random = list(PARTICIPANT_ID =~ affect_valence_PMcen_scaled*S.DERS_Total_PMcen_scaled, DayInd =~1), na.action = "na.exclude", control=lmeControl(msMaxIter = 100, opt = "optim"))
-
-summary(persModel)
-
-persModel <- lme(data=df, AFFECT_ESM_X_lag_minus1 ~ affect_valence_PMcen_scaled*S.DERS_Modulate_PMcen, 
-                 random = list(PARTICIPANT_ID =~ affect_valence_PMcen_scaled*S.DERS_Modulate_PMcen, DayInd =~1), na.action = "na.exclude", control=lmeControl(msMaxIter = 100, opt = "optim"))
+                   random = list(PARTICIPANT_ID =~ 1, DayInd =~1), na.action = "na.exclude", control=lmeControl(msMaxIter = 100, opt = "optim"))
 
 summary(persModel)
 
 
 
-df$S.DERS_Total_PMcen_scaled <- scale(df$S.DERS_Total_PMcen)
-df$S.DERS_NonAccept_PMcen_scaled <- scale(df$S.DERS_NonAccept_PMcen)
-df$S.DERS_Modulate_PMcen_scaled  <- scale(df$S.DERS_Modulate_PMcen)
-df$S.DERS_Awareness_PMcen_scaled <- scale(df$S.DERS_Awareness_PMcen)
-df$S.DERS_Clarity_PMcen_scaled   <- scale(df$S.DERS_Clarity_PMcen)
+
 
 
 #######################
@@ -422,29 +472,126 @@ df$time <- df$time_since_start_hours
 
 df$SDERS_Total_PMcen_scaled <- df$S.DERS_Total_PMcen_scaled
 
-df_ctSEM <- df[,c("id", "time", "affect_valence_PMcen_scaled", "SDERS_Total_PMcen_scaled", "stressors_PMcen_scaled")]
+
+df$SDERS_Total_scaled <- df$S.DERS_Total_scaled
+df$Stressors_scaled <- scale(df$NE.EVENT)
+df$affect_valence_scaled <- scale(df$AFFECT_ESM_X)
+
+persModel_ct_td <- ctModel(type = "ct",
+                           n.latent = 2,  # only affect and SDERS now
+                           n.manifest = 2,
+                           n.TDpred = 1,
+                           manifestNames = c("affect_valence_scaled", "SDERS_Total_scaled"),
+                           latentNames = c("affect", "SDERS"),
+                           TDpredNames = "Stressors_scaled",
+                           
+                           LAMBDA = diag(2),  # identity matrix for manifest-latent mapping
+                           
+                           DRIFT = matrix(c(
+                             "drift_Affect_Affect",    "drift_Regulation_Affect",
+                             "drift_Affect_Regulation","drift_Regulation_Regulation"
+                           ), 2, 2, byrow = TRUE)
+)
 
 
-persModel_ct <- ctModel(type="ct",
-                        n.latent=3, n.manifest=3,
-                        manifestNames=c("affect_valence_PMcen_scaled", "SDERS_Total_PMcen_scaled", "stressors_PMcen_scaled"),
-                        latentNames=c("affect", "SDERS", "stressors"),
-                        LAMBDA=diag(3),
-                        DRIFT=matrix(c(
-                          "drift_Affect_Affect",    "drift_Regulation_Affect",    "drift_Stressors_Affect",
-                          "drift_Affect_Regulation","drift_Regulation_Regulation","drift_Stressors_Regulation",
-                          "drift_Affect_Stressors", "drift_Regulation_Stressors", "drift_Stressors_Stressors"
-                        ), 3, 3, byrow = TRUE)) 
+persModel_ct_fit2 <- ctStanFit(datalong=df,
+                              ctstanmodel=persModel_ct_td)
+
+summary(persModel_ct_fit2)
+ctStanContinuousPars(persModel_ct_fit2,calcfunc = quantile, calcfuncargs = list(probs=.975))
+
+ARplot <- ctStanDiscretePars(persModel_ct_fit2, plot=TRUE, indices = 'AR', times = seq(from=0, to=48, by = 1))
+
+ARplot +
+  labs(
+    title = NULL,
+    y = "Autocorrelation",
+    x = "Time interval (h)"
+  ) +
+  scale_fill_discrete(
+    labels = c("affect.affect" = "affect", "SDERS.SDERS" = "S-DERS"),
+    name = NULL  # removes legend title
+  ) +
+  scale_color_discrete(
+    labels = c("affect.affect" = "affect", "SDERS.SDERS" = "S-DERS"),
+    name = NULL
+  ) +
+  theme(legend.position=c(.8,.75))
+
+ggsave(
+  filename = here("manuscripts", "SDERSvalid_dailyLife","figures","autocorrelation_plot.jpg"), 
+  device = "jpg",                      
+  width = 8.5,                             
+  height = 8,                             
+  units = "cm",
+  dpi = 600                              
+  #compression = "lzw"                     
+)
+
+ctStanDiscretePars(persModel_ct_fit2, plot=TRUE, indices = 'AR', times = seq(from=0, to=48, by = 1))
 
 
-persModel_ct_fit <- ctFit(dat=df_ctSEM,
-                          ctmodelobj=persModel_ct,
-                          df_ctSEM)
+ctsem::ctStanDiscretePars(persModel_ct_fit2, plot=TRUE, indices = 'CR', times = seq(from=0, to=48, by = 1), observational=FALSE)
+ctsem::ctStanDiscretePars(persModel_ct_fit2, plot=TRUE, indices = 'all', times = seq(from=0, to=48, by = 1), observational=TRUE)
+ctsem::ctStanDiscretePars(persModel_ct_fit2, plot=TRUE, indices = 'CR', times = seq(from=0, to=48, by = 1), observational=TRUE)
 
-summary(persModel_ct_fit)
+CRplot <- ctStanDiscretePars(persModel_ct_fit2, plot=TRUE, indices = 'CR', times = seq(from=0, to=48, by = 1), observational=TRUE)
 
-ctGenerate(persModel_ct)
+CRplot +
+  labs(
+    title = NULL,
+    y = "Cross-correlation",
+    x = "Time interval (h)"
+  ) +
+  scale_fill_discrete(
+    labels = c("SDERS.affect" = "S-DERS -> affect", "affect.SDERS" = "affect -> S-DERS"),
+    name = NULL  # removes legend title
+  ) +
+  scale_color_discrete(
+    labels = c("SDERS.affect" = "S-DERS -> affect", "affect.SDERS" = "affect -> S-DERS"),
+    name = NULL
+  ) +
+  theme(legend.position=c(.7,.4))
 
+ggsave(
+  filename = here("manuscripts", "SDERSvalid_dailyLife","figures","crosscorrelation_plot.jpg"), 
+  device = "jpg",                      
+  width = 8.5,                             
+  height = 8,                             
+  units = "cm",
+  dpi = 600                              
+  #compression = "lzw"                     
+)
+
+
+ctsemPlot <- ctStanDiscretePars(persModel_ct_fit2, plot=TRUE, indices = 'all', times = seq(from=0, to=48, by = 1), observational=TRUE)
+
+ctsemPlot + 
+  labs(
+    title = NULL,
+    y = "Auto- and cross-correlations",
+    x = "Time interval (h)"
+  ) +
+  scale_fill_discrete(
+    labels = c("affect.affect" = "affect -> affect", "SDERS.affect" = "S-DERS -> affect", "affect.SDERS" = "affect -> S-DERS", "SDERS.SDERS" = "S-DERS -> S-DERS"),
+    name = NULL  # removes legend title
+  ) +
+  scale_color_discrete(
+    labels = c("affect.affect" = "affect -> affect", "SDERS.affect" = "S-DERS -> affect", "affect.SDERS" = "affect -> S-DERS", "SDERS.SDERS" = "S-DERS -> S-DERS"),
+    name = NULL
+  ) +
+  theme(legend.position=c(.7,.2))
+
+
+ggsave(
+  filename = here("manuscripts", "SDERSvalid_dailyLife","figures","crosscorrelation_plot.png"), 
+  device = "png",                      
+  width = 8.5,                             
+  height = 8,                             
+  units = "cm",
+  dpi = 600                              
+  #compression = "lzw"                     
+)
 
 
 ###############################################
@@ -495,28 +642,52 @@ createInteractionPlot <- function(model, maineffectTerm = "stressors_PMcen_scale
 stressModel_traitDERS <- lme(data=df, S.DERS_Total_scaled ~ stressors_PMcen_scaled*DERS_scaled + stressors_PM_scaled*DERS_scaled, 
                    random = list(PARTICIPANT_ID =~ stressors_PMcen_scaled, DayInd =~1), na.action=na.exclude, control=lmeControl(msMaxIter = 100, opt = "optim"))
 summary(stressModel_traitDERS)
+intervals(stressModel_traitDERS)
 DERSplot <- createInteractionPlot(stressModel_traitDERS, interactionTerm = DERS_scaled, interactionLabel = "DERS")
+DERSplot + theme_bw() + theme(legend.position = "top", legend.direction = "horizontal")
+
+ggsave(
+  filename = here("manuscripts", "SDERSvalid_dailyLife","figures","DERS.png"), 
+  device = "jpg",                      
+  width = 8.5,                             
+  height = 8,                             
+  units = "cm",
+  dpi = 600                              
+  #compression = "lzw"                     
+)
+
+DERSplot <- DERSplot + ggtitle("Trait DERS")
+
+
 
 # S-DERS after mood induction
 stressModel_SDERSmoodInd <- lme(data=df, S.DERS_Total_scaled ~ stressors_PMcen_scaled*S.DERS_scaled + stressors_PM_scaled*S.DERS_scaled, 
                              random = list(PARTICIPANT_ID =~ stressors_PMcen_scaled, DayInd =~1), na.action=na.exclude, control=lmeControl(msMaxIter = 100, opt = "optim"))
 summary(stressModel_SDERSmoodInd)
+intervals(stressModel_SDERSmoodInd)
 SDERSplot <- createInteractionPlot(stressModel_SDERSmoodInd, interactionTerm = S.DERS_scaled, interactionLabel = "S-DERS (Mood induction)")
+SDERSplot <- SDERSplot + ggtitle("S-DERS (Mood induction)")  + theme(axis.title.y = element_text(color = "white"))
+
 
 # Neuroticism
 stressModel_NEO <- lme(data=df, S.DERS_Total_scaled ~ stressors_PMcen_scaled*NEO_scaled + stressors_PM_scaled*NEO_scaled, 
                                 random = list(PARTICIPANT_ID =~ stressors_PMcen_scaled, DayInd =~1), na.action=na.exclude, control=lmeControl(msMaxIter = 100, opt = "optim"))
 summary(stressModel_NEO)
+intervals(stressModel_NEO)
 NEOplot <- createInteractionPlot(stressModel_NEO, interactionTerm = NEO_scaled, interactionLabel = "Neuroticism")
+NEOplot <- NEOplot + ggtitle("Neuroticism")
+
 
 # DASS
 stressModel_DASS <- lme(data=df, S.DERS_Total_scaled ~ stressors_PMcen_scaled*DASS_scaled + stressors_PM_scaled*DASS_scaled, 
                        random = list(PARTICIPANT_ID =~ stressors_PMcen_scaled, DayInd =~1), na.action=na.exclude, control=lmeControl(msMaxIter = 100, opt = "optim"))
 summary(stressModel_DASS)
+intervals(stressModel_DASS)
 DASSplot <- createInteractionPlot(stressModel_DASS, interactionTerm = DASS_scaled, interactionLabel = "DASS")
+DASSplot <- DASSplot + ggtitle("DASS") + theme(axis.title.y = element_text(color = "white"))
 
-plot_grid(DERSplot, SDERSplot, NEOplot, DASSplot, nrow=2)
-ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "crossLevelInteraction_panelPlot.svg"), device="svg")
+cowplot::plot_grid(DERSplot, SDERSplot, NEOplot, DASSplot, nrow=2)
+ggsave(here::here("manuscripts", "SDERSvalid_dailyLife","figures", "crossLevelInteraction_panelPlot.png"), device="png", width=7, height=6)
 
 
 # DASS subscore analysis

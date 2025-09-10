@@ -17,13 +17,16 @@ To reproduce the analyses (or get a general better understanding of the reposito
 3. Relative paths: The project uses paths relative to the location of the R-project file using the "here" package, which should ensure cross-platform compatibility
 4. use scripts: Analyses scripts can be found in the "scripts" subfolder. These should optimally be opened within the previously opened R-project 
 5. local functions: The project uses some custom functions, which are defined in and loaded from the folder "functions"
-6. data: The scripts depend on data, which can be found in the "data" folder. This data is minimally preprocessed (e.g., invalid cases due to technical difficulties are removed and scale scores are calculated). For details on this minimal preprocessing see the respective scripts in the "scripts" folder
+6. data: The scripts depend on data, which can be found in the "data" folder together with a codebook. This data is minimally preprocessed (e.g., invalid cases due to technical difficulties are removed and scale scores are calculated). For details on this minimal preprocessing see the respective scripts in the "scripts" folder.
 7. the manuscripts folder contains separate folders for the resulting publications. they are relevant for reproducibity, as many tables and figures are automatically moved to these subdirectories from the main scripts
 
 ## Notes on specific papers
 
 ### A German version of the State Difficulties in Emotion Regulation Scale (S-DERS): Translation, Validation and Extended Factor Models
-This paper focuses on the cross-sectional properties of the S-DERS following a mood induction. Relevant analysis scripts are scripts 1-3. Relevant data is "SDERSvalid_crossSec_data_preprocessed.csv". The original factor loadings from Lavender et al. (2017) can be found in "LavenderEFAloadings.csv". The respective manuscripts folder is called "SDERSvalid_crossSec".
+This paper focuses on the cross-sectional properties of the S-DERS following a mood induction. Relevant analysis scripts are scripts 1-2. Relevant data is "SDERSvalid_crossSec_data_preprocessed.csv". The original factor loadings from Lavender et al. (2017) can be found in "LavenderEFAloadings.csv". The respective manuscripts folder is called "SDERSvalid_crossSec".
 
 Preprint (PsyArxiv): Sicorello, M., Elsaesser, M., & Kolar, D. R. (2024, November 4). A German version of the State Difficulties in Emotion Regulation Scale  (S-DERS): Translation, Validation and  Extended Factor Models. https://doi.org/10.31234/osf.io/8mzvu
+
+### Emotion Regulation Difficulties in Daily Life: Assessment, Dynamics, and Links to Stress-Affective States and Traits
+This paper focuses on the trait-like versus dynamic properties of the S-DERS in daily life. Relevant scripts are scripts 3-7. The manuscript folder is called "SDERSvalid_dailyLife". Notably, the number indicators are not the same between the scripts and the paper (they were reordered in the paper, with reasons explained there). A preprint is available here: https://doi.org/10.31234/osf.io/k7mgv_v1
 

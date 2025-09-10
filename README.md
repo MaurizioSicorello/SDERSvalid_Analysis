@@ -8,7 +8,7 @@ Details on the project can be found in the respective preprints and publications
 The core project contributers are Maurizio Sicorello, David Kolar, Moritz Elsässer, Luise Prüßner, and Wiebke Heyse
 
 ## Reuse notes
-This repository is intended to enable other researchers to reuse the data and code for further projects by other research teams. In case of such reuse, please cite the publications below or consider contacting us for collaborations. 
+This repository is intended to enable other researchers to reuse the data and code for independent projects. In case of such reuse, please cite the publications below or consider contacting us for collaborations. 
 
 ## Reproducibility Notes
 To reproduce the analyses (or get a general better understanding of the repository structure), read the following instructions: 

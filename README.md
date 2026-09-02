@@ -29,4 +29,5 @@ Preprint (PsyArxiv): Sicorello, M., Elsaesser, M., & Kolar, D. R. (2024, Novembe
 
 ### Emotion Regulation Difficulties in Daily Life: Assessment, Dynamics, and Links to Stress-Affective States and Traits
 This paper focuses on the trait-like versus dynamic properties of the S-DERS in daily life. Relevant scripts are scripts 3-7. The manuscript folder is called "SDERSvalid_dailyLife". Notably, the number indicators are not the same between the scripts and the paper (they were reordered in the paper, with reasons explained there). A preprint is available here: https://doi.org/10.31234/osf.io/k7mgv_v1
+At the time of the first stable repository release, the manuscript was accepted for publication at Psychological Assessment under the same title.
 

@@ -22,12 +22,15 @@ To reproduce the analyses (or get a general better understanding of the reposito
 
 ## Notes on specific papers
 
-### A German version of the State Difficulties in Emotion Regulation Scale (S-DERS): Translation, Validation and Extended Factor Models
+### Translation, validation and extended factor models of the German State Difficulties in Emotion Regulation Scale (S-DERS)
 This paper focuses on the cross-sectional properties of the S-DERS following a mood induction. Relevant analysis scripts are scripts 1-2. Relevant data is "SDERSvalid_crossSec_data_preprocessed.csv". The original factor loadings from Lavender et al. (2017) can be found in "LavenderEFAloadings.csv". The respective manuscripts folder is called "SDERSvalid_crossSec".
 
-Preprint (PsyArxiv): Sicorello, M., Elsaesser, M., & Kolar, D. R. (2024, November 4). A German version of the State Difficulties in Emotion Regulation Scale  (S-DERS): Translation, Validation and  Extended Factor Models. https://doi.org/10.31234/osf.io/8mzvu
+Published open access version of the paper:
+Sicorello, M., Elsaesser, M., & Kolar, D. R. (2025). Translation, validation and extended factor models of the German State Difficulties in Emotion Regulation Scale (S-DERS). Borderline Personality Disorder and Emotion Dysregulation, 12(1), 25.
+
 
 ### Emotion Regulation Difficulties in Daily Life: Assessment, Dynamics, and Links to Stress-Affective States and Traits
 This paper focuses on the trait-like versus dynamic properties of the S-DERS in daily life. Relevant scripts are scripts 3-7. The manuscript folder is called "SDERSvalid_dailyLife". Notably, the number indicators are not the same between the scripts and the paper (they were reordered in the paper, with reasons explained there). A preprint is available here: https://doi.org/10.31234/osf.io/k7mgv_v1
+
 At the time of the first stable repository release, the manuscript was accepted for publication at Psychological Assessment under the same title.
 
